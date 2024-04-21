@@ -1,8 +1,10 @@
 package com.example.restaurantreview.ui;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -11,6 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.bumptech.glide.Glide;
 import com.example.restaurantreview.data.response.CustomerReviewsItem;
+import com.example.restaurantreview.data.response.PostReviewResponse;
 import com.example.restaurantreview.data.response.Restaurant;
 import com.example.restaurantreview.data.response.RestaurantResponse;
 import com.example.restaurantreview.data.retrofit.ApiConfig;
@@ -45,7 +48,43 @@ public class MainActivity extends AppCompatActivity {
         DividerItemDecoration itemDecoration = new DividerItemDecoration(this, layoutManager.getOrientation());
         binding.rvReview.addItemDecoration(itemDecoration);
         findRestaurant();
+
+        binding.btnSend.setOnClickListener(view -> {
+            if (binding.edReview.getText() != null){
+                postReview(binding.edReview.getText().toString());
+            }
+            InputMethodManager imm = (InputMethodManager)
+                    getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+        });
     }
+
+    private void postReview(String review) {
+        showLoading(true);
+        Call<PostReviewResponse> client = ApiConfig.getApiService().postReview(RESTAURANT_ID, "Giffary Suwandi", review);
+        client.enqueue(new Callback<PostReviewResponse>() {
+                    @Override
+                    public void onResponse(@NotNull Call<PostReviewResponse> call, @NotNull Response<PostReviewResponse> response) {
+                        showLoading(false);
+                        if (response.isSuccessful()) {
+                            if (response.body() != null) {
+                                setReviewData(response.body().getCustomerReviews());
+                            }
+                        } else {
+                            if (response.body() != null) {
+                                Log.e(TAG, "onFailure: " + response.body().getMessage());
+                            }
+                        }
+                    }
+                    @Override
+                    public void onFailure(@NotNull Call<PostReviewResponse>
+                                                  call, @NotNull Throwable t) {
+                        showLoading(false);
+                        Log.e(TAG, "onFailure: " + t.getMessage());
+                    }
+                });
+    }
+
 
     private void findRestaurant() {
         showLoading(true);
